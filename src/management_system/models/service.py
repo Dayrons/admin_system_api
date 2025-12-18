@@ -1,0 +1,20 @@
+from models.base import BaseModel
+
+    
+from sqlalchemy import Column,  String, Text, Boolean
+
+from models.base import BaseModel
+from sqlalchemy.dialects.postgresql import ENUM
+
+SERVICE_STATUS = ['activo', 'inactivo']
+service_status_enum = ENUM(*SERVICE_STATUS, name='content_types', create_type=True)
+
+
+class Service(BaseModel):
+    __tablename__ = "services"
+
+    name = Column(String(255), nullable=False)
+    description = Column(Text)
+    status = Column(String(20), nullable=False)
+    is_active = Column(Boolean, nullable=False,default=False)
+
