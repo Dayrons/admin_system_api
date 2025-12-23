@@ -3,11 +3,13 @@ import os
 
 class Settings(BaseSettings):
     
-    APP_NAME:str
+    APP_NAME:str = "Orquestador de Servicios"
 
-    DB_PATH: str = "database.db"
+    DB_PATH: str = "/home/user/Documentos/Plansuarez/admin_system_api_ps/src/database.db"
     
-    XMLRPC_DESTINATION_DIR:str
+    XMLRPC_DESTINATION_DIR:str = " /opt/xmlrpc"
+    
+    SECRET_KEY:str = "TU_LLAVE_SECRETA_SUPER_SEGURA"
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
