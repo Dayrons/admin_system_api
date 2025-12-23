@@ -6,6 +6,8 @@ class ServiceBase(BaseModel):
     description:str
     status: str
     is_active: bool
+    add_file: bool
+    replay:bool;
     
 
 class ServiceCreate(ServiceBase):

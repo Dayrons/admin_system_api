@@ -13,10 +13,9 @@ chmod 666 database.db
 # Dar permisos de escritura a la carpeta (necesario para el bloqueo de archivos de SQLite)
 chmod 777 .
 
-
+<!-- Hay que agregar esto al archivo para que no pida contrase;a -->
 sudo visudo
 
-<!-- Se supone que este comando te asigna para que no te pida contrase;a al intentar manipular los system -->
 tu_usuario ALL=(ALL) NOPASSWD: /usr/bin/mv /tmp/*.service /etc/systemd/system/, /usr/bin/systemctl daemon-reload, /usr/bin/systemctl enable *, /usr/bin/systemctl start *
 
 Objetivo,Comando,Por qué
@@ -36,5 +35,15 @@ sudo chown $USER:$USER /opt/xmlrpc
 
 chmod 755 /opt/xmlrpc
 
-
+<!-- Si se va a requerer el usuario root ya que tambien de funcionar para detener servicios como odoo, postgres etc -->
 <!-- No a todos los archivos se le debe crea un system ya que no todos deben de quedar en ejecucion constante -->
+
+
+pyinstaller --onefile \
+    --name admin_system_api \
+    --add-data ".env:." \
+    --paths . \
+    --hidden-import=uvicorn.logging \
+    --hidden-import=uvicorn.loops.auto \
+    --hidden-import=uvicorn.protocols.http.h11_impl \
+    src/main.py

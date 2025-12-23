@@ -3,19 +3,24 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from dependencies.db_session import get_db
 from auth.security import security
-
+from pydantic import BaseModel
 from auth.models.user import User
 from auth.schema.user_eschema import UserCreate
 
 router = APIRouter(prefix="/v1/auth",  tags=["Auth"])
 
+
+class LoginRequest(BaseModel):
+    name: str
+    password: str
+
 @router.post("/signin")
-def signin(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+def signin(data:LoginRequest, db: Session = Depends(get_db)):
     # 1. Buscar al usuario
-    user = db.query(User).filter(User.name == form_data.username).first()
+    user = db.query(User).filter(User.name == data.name).first()
     
     # 2. Validar existencia y contraseña
-    if not user or not security.verify_password(form_data.password, user.password):
+    if not user or not security.verify_password(data.password, user.password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Usuario o contraseña incorrectos",
