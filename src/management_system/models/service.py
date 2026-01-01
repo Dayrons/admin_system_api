@@ -18,6 +18,7 @@ class Service(BaseModel):
     status = Column(String(20), nullable=False)
     is_active = Column(Boolean, nullable=False,default=False)
     add_file = Column(Boolean, nullable=False,default=False)
+    file_name = Column(String(255), nullable=True)
     replay = Column(Boolean, nullable=False,default=False)
     
 

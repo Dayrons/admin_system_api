@@ -74,6 +74,7 @@ def deploy_service(db: Session, service_in: ServiceCreate, file) -> Service:
     if service_in.add_file:
         service_name = service_in.name.lower().replace(" ", ".")
         script_path = os.path.join(settings.XMLRPC_DESTINATION_DIR, file.filename)
+        service_in.file_name = file.filename
         service_file_path = f"/etc/systemd/system/{service_name}.service"
 
         
@@ -115,3 +116,94 @@ def deploy_service(db: Session, service_in: ServiceCreate, file) -> Service:
     return service_db
 
     
+def remove_service(db: Session, service_in: Service):
+    """
+    Detiene, deshabilita y remueve la unidad systemd, recarga systemd, resetea fallos,
+    remueve posibles archivos xmlrpc guardados en settings.XMLRPC_DESTINATION_DIR
+    y elimina el registro en la DB si existe.
+
+    """
+    if service_in.add_file:
+        base_name = service_in.name[:-8] if service_in.name and service_in.name.endswith(".service") else service_in.name
+        unit_name = f"{base_name}.service"
+        unit_path = f"/etc/systemd/system/{unit_name}"
+
+        # 1) Stop, disable, remove unit file, daemon-reload, reset-failed
+        steps = [
+            (["sudo", "/usr/bin/systemctl", "stop", unit_name], "stop"),
+            (["sudo", "/usr/bin/systemctl", "disable", unit_name], "disable"),
+            (["sudo", "rm", "-f", unit_path], "remove unit file"),
+            (["sudo", "/usr/bin/systemctl", "daemon-reload"], "daemon-reload"),
+            (["sudo", "/usr/bin/systemctl", "reset-failed"], "reset-failed"),
+        ]
+
+        for cmd, desc in steps:
+            result = run_command(cmd)
+            if result.returncode != 0:
+                raise HTTPException(status_code=500, detail=f"Error al ejecutar '{' '.join(cmd)}' ({desc}): {result.stderr}")
+
+        # # 2) Remover archivos xmlrpc en la carpeta destino (seguir guía de deploy_service)
+        # removed_files = []
+        # try:
+        #     dest_dir = settings.XMLRPC_DESTINATION_DIR
+        # except Exception:
+        #     dest_dir = None
+
+        # if dest_dir and os.path.isdir(dest_dir):
+        #     # Intentar usar información del objeto recibido (service_in) primero
+        #     possible_attrs = ("file_name", "filename", "script_name", "script", "xmlrpc_file", "path")
+        #     for attr in possible_attrs:
+        #         fname = getattr(service_in, attr, None)
+        #         if fname:
+        #             fpath = os.path.join(dest_dir, fname)
+        #             run_command(["sudo", "rm", "-f", fpath])
+        #             if not os.path.exists(fpath):
+        #                 removed_files.append(fpath)
+
+        #     # Si no se eliminó nada usando service_in, intentar obtener registro DB por id y revisar atributos
+        #     try:
+        #         db_record = db.get(Service, service_in.id) if getattr(service_in, "id", None) is not None else None
+        #     except Exception:
+        #         db_record = None
+
+        #     if db_record:
+        #         for attr in possible_attrs:
+        #             fname = getattr(db_record, attr, None)
+        #             if fname:
+        #                 fpath = os.path.join(dest_dir, fname)
+        #                 run_command(["sudo", "rm", "-f", fpath])
+        #                 if not os.path.exists(fpath):
+        #                     removed_files.append(fpath)
+
+        #     # Como fallback, eliminar archivos que empiecen por el base_name (ej. base_name.py)
+        #     for fname in os.listdir(dest_dir):
+        #         if fname.startswith(base_name):
+        #             fpath = os.path.join(dest_dir, fname)
+        #             run_command(["sudo", "rm", "-f", fpath])
+        #             if not os.path.exists(fpath):
+        #                 removed_files.append(fpath)
+
+
+    db_deleted = False
+    if getattr(service_in, "id", None) is not None:
+        db_service = db.get(Service, service_in.id)
+        if db_service:
+            db.delete(db_service)
+            db.commit()
+            db_deleted = True
+    else:
+        # Fallback: buscar por nombre base
+        db_service = db.query(Service).filter(Service.name == base_name).first()
+        if db_service:
+            db.delete(db_service)
+            db.commit()
+            db_deleted = True
+
+    return {
+        "message": f"Servicio '{unit_name}' removido del sistema y DB (si existía).",
+        "unit_removed": unit_path,
+        # "xmlrpc_removed": removed_files,
+        "db_deleted": db_deleted,
+        "service_id": getattr(service_in, "id", None),
+        "service_name": service_in.name
+    }

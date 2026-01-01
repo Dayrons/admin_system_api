@@ -6,19 +6,21 @@ from management_system.services import system
 from fastapi.security import OAuth2PasswordBearer
 import json
 from typing import Optional
+from auth.security.security import get_current_user
+from auth.models.user import User
 
 router = APIRouter(
     prefix="/v1/services",
     tags=["System"]
 )
 
-oauth2 = OAuth2PasswordBearer(tokenUrl="login")
+oauth2 = OAuth2PasswordBearer(tokenUrl="api/v1/auth/signin")
 
 
 @router.get("/", response_model=list[Service])
 def get_all_services(
     db: Session = Depends(get_db),
-    token: str = Depends(oauth2),
+    current_user: User = Depends(get_current_user),
     skip: int = 0,
     limit: int = 100
 ):
@@ -26,12 +28,12 @@ def get_all_services(
 
 
 @router.post("/management")
-async def management_service(data: dict, db: Session = Depends(get_db), token: str = Depends(oauth2),):
+async def management_service(data: dict, db: Session = Depends(get_db),  current_user: User = Depends(get_current_user),):
     return system.management_service(data, db=db)
 
 
 @router.post("/deploy",response_model=Service, status_code=status.HTTP_201_CREATED)
-async def deploy_service(service_in_json: str = Form(...),  file: Optional[UploadFile] = File(None), db: Session = Depends(get_db),  token: str = Depends(oauth2),):
+async def deploy_service(service_in_json: str = Form(...),  file: Optional[UploadFile] = File(None), db: Session = Depends(get_db),   current_user: User = Depends(get_current_user),):
     try:
         service_data = json.loads(service_in_json) 
 
@@ -40,5 +42,15 @@ async def deploy_service(service_in_json: str = Form(...),  file: Optional[Uploa
         return system.deploy_service(db=db,file=file,service_in=service_in)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error en el despliegue: {str(e)}")
+    
+    
 
-
+@router.post("/remove", response_model=dict,  status_code=status.HTTP_200_OK)
+async def remove_service(service_in: Service, db: Session = Depends(get_db),   current_user: User = Depends(get_current_user),):
+    try:
+        return system.remove_service(db=db, service_in=service_in)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al eliminar el servicio: {str(e)}")
+ 
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error en el despliegue: {str(e)}")

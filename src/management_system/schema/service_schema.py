@@ -5,6 +5,7 @@ class ServiceBase(BaseModel):
     name: str
     description:str
     status: str
+    file_name: str | None = None
     is_active: bool
     add_file: bool
     replay:bool;
