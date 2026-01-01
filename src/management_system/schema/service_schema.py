@@ -8,7 +8,8 @@ class ServiceBase(BaseModel):
     file_name: str | None = None
     is_active: bool
     add_file: bool
-    replay:bool;
+    replay:bool
+    user_exec: str  = "root"
     
 
 class ServiceCreate(ServiceBase):

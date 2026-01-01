@@ -82,6 +82,7 @@ def deploy_service(db: Session, service_in: ServiceCreate, file) -> Service:
             shutil.copyfileobj(file.file, buffer)
         
         if service_in.replay:
+            #En el usuario debe de ir el usuario que tiene permisos para ejecutar el entorno virtual de odoo
             service_content = f"""[Unit]
                 Description={service_in.description}
                 After=network.target
@@ -89,10 +90,12 @@ def deploy_service(db: Session, service_in: ServiceCreate, file) -> Service:
                 [Service]
                 Type=simple
                 WorkingDirectory={settings.XMLRPC_DESTINATION_DIR}
-                ExecStart=/usr/bin/python3 {script_path}
+                ExecStart={settings.PYTHON_ENV_DIR} {script_path}
+                StandardOutput=journal+console
+                User={service_in.user_exec}
+                Group={service_in.user_exec}
                 Restart=always
-                User=root
-
+                RestartSec=5
                 [Install]
                 WantedBy=multi-user.target
             """

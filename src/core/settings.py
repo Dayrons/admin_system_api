@@ -12,6 +12,8 @@ class Settings(BaseSettings):
     SECRET_KEY:str = "TU_LLAVE_SECRETA_SUPER_SEGURA"
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    
+    PYTHON_ENV_DIR: str = "/home/dayrons/Documentos/Plansuarez/odoo17/venv/bin/python3"
 
     @property
     def DATABASE_URL(self) -> str:

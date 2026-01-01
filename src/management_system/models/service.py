@@ -20,5 +20,6 @@ class Service(BaseModel):
     add_file = Column(Boolean, nullable=False,default=False)
     file_name = Column(String(255), nullable=True)
     replay = Column(Boolean, nullable=False,default=False)
+    user_exec = Column(String(255), nullable=False,default="root")
     
 
