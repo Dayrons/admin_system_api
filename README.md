@@ -1,3 +1,9 @@
+Para poder trabajar sin problema con est a api se debe instalar los paquetes del el venv con el usuario sudo 
+
+sudo ./venv/bin/python3 ./src/main.py
+sudo ./venv/bin/python3 -m pip install -r requirements.txt
+
+o una alternativa es crear un ejecutable y correrlo como sudo
 
 <!-- Cambiar el usuario al usuario root influye en el uso de la carpeta -->
 sudo chown -R tu_usuario:tu_usuario /home/user/Documentos/Plansuarez/admin_system_api_ps/
