@@ -106,9 +106,9 @@ def deploy_service(db: Session, service_in: ServiceCreate, file) -> Service:
             subprocess.run(["sudo", "mv", f"/tmp/{service_name}.service", service_file_path], check=True)
             subprocess.run(["sudo", "systemctl", "daemon-reload"], check=True)
             subprocess.run(["sudo", "systemctl", "enable", service_name], check=True)
-            subprocess.run(["sudo", "systemctl", "start", service_name], check=True)
+            subprocess.run(["sudo", "systemctl", "start" if service_in.replay else "stop", service_name], check=True)
             
-    subprocess.run(["sudo", "systemctl", "status", service_name],check=True)
+    # subprocess.run(["sudo", "systemctl", "status", service_name],check=True)
     
     service_in.name = service_name 
     

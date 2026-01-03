@@ -5,15 +5,15 @@ class Settings(BaseSettings):
     
     APP_NAME:str = "Orquestador de Servicios"
 
-    DB_PATH: str = "/home/user/Documentos/Plansuarez/admin_system_api_ps/src/database.db"
+    DB_PATH: str = "/opt/exec/database.db"
     
-    XMLRPC_DESTINATION_DIR:str = " /opt/xmlrpc"
+    XMLRPC_DESTINATION_DIR:str = "/opt/xmlrpc"
     
-    SECRET_KEY:str = "TU_LLAVE_SECRETA_SUPER_SEGURA"
+    SECRET_KEY:str = "mtMVzRrEGaCShaipSPVlkjv6LPDmxuzHDiegOMqZynX5GAg4JWcn7DeT87W5Git8"
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
     
-    PYTHON_ENV_DIR: str = "/home/dayrons/Documentos/Plansuarez/odoo17/venv/bin/python3"
+    PYTHON_ENV_DIR: str = "/opt/usrodoo/venv/bin/python3"
 
     @property
     def DATABASE_URL(self) -> str:

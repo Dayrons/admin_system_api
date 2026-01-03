@@ -1,4 +1,4 @@
-Para poder trabajar sin problema con est a api se debe instalar los paquetes del el venv con el usuario sudo 
+Para poder trabajar sin problema con est a api se debe instalar los paquetes del el venv con el usuario sudo  o generar un ejecutable y correr como sudo
 
 sudo ./venv/bin/python3 ./src/main.py
 sudo ./venv/bin/python3 -m pip install -r requirements.txt
@@ -33,22 +33,22 @@ Comandos Systemctl,visudo,Permite activar los servicios desde el código.
 <!-- Hay que crear el proyecto con los mismos permisos que se crea odoo -->
 <!-- cre la carpeta de forma manual con el usuario normal pero hay que ver en que puede influir con la ejecucion de los xmlrpc -->
 
-<!-- Tener el cuenta que los xmlrpc no se ejecutan como super usuario ya que odoo es el encargado de la funcion -->
-<!-- Tener en cuenta si en realidad se requiere utilizar el usuario sudo ya que se podria manipular los xmlrpc sin super usuario -->
+
+<!-- crear directorio  -->
 sudo mkdir -p /opt/xmlrpc
 
 sudo chown $USER:$USER /opt/xmlrpc
 
 chmod 755 /opt/xmlrpc
 
-<!-- Si se va a requerer el usuario root ya que tambien de funcionar para detener servicios como odoo, postgres etc -->
-<!-- No a todos los archivos se le debe crea un system ya que no todos deben de quedar en ejecucion constante -->
 
 
+<!-- Crear ejecutable con paquete necesarios -->
 pyinstaller --onefile \
     --name admin_system_api \
     --add-data ".env:." \
     --paths . \
+    --hidden-import="passlib.handlers.bcrypt" \
     --hidden-import=uvicorn.logging \
     --hidden-import=uvicorn.loops.auto \
     --hidden-import=uvicorn.protocols.http.h11_impl \

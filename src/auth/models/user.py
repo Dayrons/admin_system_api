@@ -6,5 +6,5 @@ class User(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, index=True, nullable=False)
-    password = Column(String, nullable=False, max_length=72)
+    password = Column(String, nullable=False)
     is_active = Column(Boolean, default=True)
