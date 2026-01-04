@@ -6,6 +6,8 @@ from auth.security import security
 from pydantic import BaseModel
 from auth.models.user import User
 from auth.schema.user_eschema import UserCreate
+from auth.security.security import get_current_user
+
 
 router = APIRouter(prefix="/v1/auth",  tags=["Auth"])
 
@@ -76,3 +78,28 @@ def signup(user_in: UserCreate, db: Session = Depends(get_db)):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error al guardar en base de datos: {str(e)}"
         )
+        
+
+@router.post("/validate-password", response_model=None)
+def validate_password(data: dict, user: User = Depends(get_current_user)):
+    password = data.get("password")
+
+    if not user or not password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Error en los datos proporcionados"
+        )
+
+    if not security.verify_password(password, user.password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Contraseña incorrecta",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    return  {
+            "status": "success",
+            "message": "Contraseña validada correctamente",
+            
+        }
+
