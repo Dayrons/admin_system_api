@@ -9,26 +9,54 @@ import subprocess
 import os
 
 from management_system.utils.functions import run_command
-
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
+caracas_tz = ZoneInfo("America/Caracas")
 
 def get_all_services(db: Session, skip: int = 0, limit: int = 100) -> List[Service]:
     
     if limit > 200:
         limit = 200
     
-    return db.query(Service).offset(skip).limit(limit).all()
+    results = db.query(Service).offset(skip).limit(limit).all()
+    
+    
+    for service in results:
+        system_result = run_command(["sudo", "/usr/bin/systemctl", "is-active", service.name, "--no-pager"])
+        print(system_result)
+        print(f"system_result.stdout: {system_result.stdout}")
+        print(f"system_result.stderr: {system_result.stderr}")
+        print(f"system_result.returncode: {system_result.returncode}")
+        service.is_active = True if system_result.stdout.strip() == "active" else False
+        
+        system_result = run_command([
+            "sudo", "/usr/bin/journalctl", 
+            "-u", service.name,      
+            "-n", "20",              
+            "--no-pager"             
+        ])
 
-# def management_service(data:dict):
-#     if data.get("action") not in ["start", "stop", "restart", "status"]:
-#         raise HTTPException(status_code=400, detail="Acción no válida")
-#     result = run_command(["sudo", "/usr/bin/systemctl", data.get("action"), data.get("service")])
-#     if result.returncode == 0:
-#         return {"message": f"Servicio {data.get("action")} ejecutado correctamente", "result":result}
-#     else:
-#         raise HTTPException(status_code=500, detail=f"Error: {result.stderr}")
+        print(f"journalctl stdout: {system_result.stdout}")
+        print(f"journalctl stderr: {system_result.stderr}")
+    
+    return results
+
+
+
+def get_service_logs(service_name: str):
+    # -u: unidad, -n: líneas, --no-pager: salida plana
+    command = ["sudo", "/usr/bin/journalctl", "-u", service_name, "-n", "100", "--no-pager"]
+    result = run_command(command)
+    
+    if result.returncode != 0:
+        return {"logs": "No se pudieron obtener los logs", "error": result.stderr}
+    
+    return {"logs": result.stdout}
+
     
 
 def management_service(data: dict, db: Session):
+
     action = data.get("action")
     service_name = data.get("service")
     
@@ -44,15 +72,16 @@ def management_service(data: dict, db: Session):
         is_active = True if action in ["start", "restart"] else False
         
         # 4. Actualizar en la Base de Datos
-        # Buscamos el registro del servicio (ajusta 'name' según tu columna)
         db_service = db.query(Service).filter(Service.name == service_name).first()
         
         if db_service:
             db_service.is_active = is_active
-            db.commit() # Guardamos los cambios
-            db.refresh(db_service) # Recargamos el objeto actualizado
+            # Forzar actualización de updated_at si existe
+            if hasattr(db_service, "updated_at"):
+                db_service.updated_at = datetime.now(caracas_tz)
+            db.commit()  # Guardamos los cambios
+            db.refresh(db_service)  # Recargamos el objeto actualizado
         else:
-            # Opcional: Si el servicio no está en la DB, puedes decidir si ignorar o lanzar error
             print(f"Advertencia: El servicio {service_name} no existe en la base de datos.")
 
         # 5. Retornar la respuesta con el objeto de la DB
@@ -68,7 +97,6 @@ def management_service(data: dict, db: Session):
         raise HTTPException(status_code=500, detail=f"Error de sistema: {result.stderr}")
     
     
-
 def deploy_service(db: Session, service_in: ServiceCreate, file) -> Service:
     service_name = service_in.name
     if service_in.add_file:
@@ -131,7 +159,6 @@ def remove_service(db: Session, service_in: Service):
         unit_name = f"{base_name}.service"
         unit_path = f"/etc/systemd/system/{unit_name}"
 
-        # 1) Stop, disable, remove unit file, daemon-reload, reset-failed
         steps = [
             (["sudo", "/usr/bin/systemctl", "stop", unit_name], "stop"),
             (["sudo", "/usr/bin/systemctl", "disable", unit_name], "disable"),
@@ -145,48 +172,19 @@ def remove_service(db: Session, service_in: Service):
             if result.returncode != 0:
                 raise HTTPException(status_code=500, detail=f"Error al ejecutar '{' '.join(cmd)}' ({desc}): {result.stderr}")
 
-        # # 2) Remover archivos xmlrpc en la carpeta destino (seguir guía de deploy_service)
-        # removed_files = []
-        # try:
-        #     dest_dir = settings.XMLRPC_DESTINATION_DIR
-        # except Exception:
-        #     dest_dir = None
+        removed_file = ''
+        try:
+            dest_dir = settings.XMLRPC_DESTINATION_DIR
+        except Exception:
+            dest_dir = None
 
-        # if dest_dir and os.path.isdir(dest_dir):
-        #     # Intentar usar información del objeto recibido (service_in) primero
-        #     possible_attrs = ("file_name", "filename", "script_name", "script", "xmlrpc_file", "path")
-        #     for attr in possible_attrs:
-        #         fname = getattr(service_in, attr, None)
-        #         if fname:
-        #             fpath = os.path.join(dest_dir, fname)
-        #             run_command(["sudo", "rm", "-f", fpath])
-        #             if not os.path.exists(fpath):
-        #                 removed_files.append(fpath)
-
-        #     # Si no se eliminó nada usando service_in, intentar obtener registro DB por id y revisar atributos
-        #     try:
-        #         db_record = db.get(Service, service_in.id) if getattr(service_in, "id", None) is not None else None
-        #     except Exception:
-        #         db_record = None
-
-        #     if db_record:
-        #         for attr in possible_attrs:
-        #             fname = getattr(db_record, attr, None)
-        #             if fname:
-        #                 fpath = os.path.join(dest_dir, fname)
-        #                 run_command(["sudo", "rm", "-f", fpath])
-        #                 if not os.path.exists(fpath):
-        #                     removed_files.append(fpath)
-
-        #     # Como fallback, eliminar archivos que empiecen por el base_name (ej. base_name.py)
-        #     for fname in os.listdir(dest_dir):
-        #         if fname.startswith(base_name):
-        #             fpath = os.path.join(dest_dir, fname)
-        #             run_command(["sudo", "rm", "-f", fpath])
-        #             if not os.path.exists(fpath):
-        #                 removed_files.append(fpath)
-
-
+        if dest_dir and os.path.isdir(dest_dir):
+            fname = getattr(service_in, "file_name", None)
+            fpath = os.path.join(dest_dir, fname)
+            run_command(["sudo", "rm", "-f", fpath])
+            if not os.path.exists(fpath):
+                removed_file = fpath
+                
     db_deleted = False
     if getattr(service_in, "id", None) is not None:
         db_service = db.get(Service, service_in.id)
@@ -195,7 +193,7 @@ def remove_service(db: Session, service_in: Service):
             db.commit()
             db_deleted = True
     else:
-        # Fallback: buscar por nombre base
+
         db_service = db.query(Service).filter(Service.name == base_name).first()
         if db_service:
             db.delete(db_service)
@@ -205,7 +203,7 @@ def remove_service(db: Session, service_in: Service):
     return {
         "message": f"Servicio '{unit_name}' removido del sistema y DB (si existía).",
         "unit_removed": unit_path,
-        # "xmlrpc_removed": removed_files,
+        "xmlrpc_removed": removed_file,
         "db_deleted": db_deleted,
         "service_id": getattr(service_in, "id", None),
         "service_name": service_in.name

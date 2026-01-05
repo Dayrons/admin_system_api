@@ -3,18 +3,21 @@ from sqlalchemy import Column, Integer, DateTime, Boolean
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
 from core.settings import settings 
-from datetime import datetime
+from datetime import datetime, timezone
 from contextvars import ContextVar
 from sqlalchemy import event
 from sqlalchemy.orm import class_mapper
 Base = declarative_base()
 
+from zoneinfo import ZoneInfo
+caracas_tz = ZoneInfo("America/Caracas")
+
 class BaseModel(Base):
     __abstract__ = True
     __allow_unmapped__ = True
     id = Column(Integer, primary_key=True, index=True)
-    created_at = Column(DateTime, default=datetime.now())
-    updated_at = Column(DateTime, default=datetime.now())
+    created_at = Column(DateTime, default=datetime.now(caracas_tz))
+    updated_at = Column(DateTime, default=datetime.now(caracas_tz))
     # Context variable to hold the current logged-in user (set this in request middleware)
     _current_user_ctx = ContextVar("current_user", default=None)
 
