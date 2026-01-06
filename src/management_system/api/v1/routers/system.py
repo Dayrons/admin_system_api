@@ -54,3 +54,14 @@ async def remove_service(service_in: Service, db: Session = Depends(get_db),   c
  
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error en el despliegue: {str(e)}")
+
+
+@router.get("/get-details/{service_id}", response_model=dict,  status_code=status.HTTP_200_OK)
+async def get_details(service_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user),):
+    try:
+        return system.get_details(db=db, service_id=service_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al eliminar el servicio: {str(e)}")
+ 
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error en el despliegue: {str(e)}")

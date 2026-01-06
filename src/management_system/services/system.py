@@ -42,19 +42,6 @@ def get_all_services(db: Session, skip: int = 0, limit: int = 100) -> List[Servi
     return results
 
 
-
-def get_service_logs(service_name: str):
-    # -u: unidad, -n: líneas, --no-pager: salida plana
-    command = ["sudo", "/usr/bin/journalctl", "-u", service_name, "-n", "100", "--no-pager"]
-    result = run_command(command)
-    
-    if result.returncode != 0:
-        return {"logs": "No se pudieron obtener los logs", "error": result.stderr}
-    
-    return {"logs": result.stdout}
-
-    
-
 def management_service(data: dict, db: Session):
 
     action = data.get("action")
@@ -207,4 +194,31 @@ def remove_service(db: Session, service_in: Service):
         "db_deleted": db_deleted,
         "service_id": getattr(service_in, "id", None),
         "service_name": service_in.name
+    }
+
+
+def get_details(db: Session, service_id: int):
+    service = db.query(Service).get(service_id)
+    if not service:
+        return {"error": "Servicio no encontrado en la base de datos", "status": 404}
+
+    command = [
+        "sudo", "/usr/bin/journalctl", 
+        "-u", service.name, 
+        "-n", "100", 
+        "--no-pager"
+    ]
+    
+    result = run_command(command)
+    
+    if result.returncode != 0:
+        return {
+            "service": service.name,
+            "logs": "No se pudieron obtener los logs", 
+            "error": result.stderr
+        }
+    
+    return {
+        "service": service.name,
+        "logs": result.stdout
     }
