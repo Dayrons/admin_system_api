@@ -1,7 +1,8 @@
 from models.base import BaseModel
-
     
 from sqlalchemy import Column,  String, Text, Boolean
+from sqlalchemy.orm import    relationship
+
 
 from models.base import BaseModel
 from sqlalchemy.dialects.postgresql import ENUM
@@ -21,5 +22,6 @@ class Service(BaseModel):
     file_name = Column(String(255), nullable=True)
     replay = Column(Boolean, nullable=False,default=False)
     user_exec = Column(String(255), nullable=False,default="root")
+    histories = relationship("HistoryService", back_populates="service", cascade="all, delete-orphan")
     
 

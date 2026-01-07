@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 from management_system.models.service import Service
+from management_system.models.history_service import HistoryService
 from management_system.schema.service_schema import ServiceCreate
 from fastapi import HTTPException
 from typing import List
@@ -58,26 +59,31 @@ def management_service(data: dict, db: Session):
         # 3. Determinar el nuevo estado
         is_active = True if action in ["start", "restart"] else False
         
-        # 4. Actualizar en la Base de Datos
-        db_service = db.query(Service).filter(Service.name == service_name).first()
         
-        if db_service:
-            db_service.is_active = is_active
-            # Forzar actualización de updated_at si existe
-            if hasattr(db_service, "updated_at"):
-                db_service.updated_at = datetime.now(caracas_tz)
-            db.commit()  # Guardamos los cambios
-            db.refresh(db_service)  # Recargamos el objeto actualizado
+        
+        service_db = db.query(Service).filter(Service.name == service_name).first()
+        
+        if service_db:
+            service_db.is_active = is_active
+            history = HistoryService(
+                name="iniciado" if is_active else "detenido",
+                service=service_db
+            )
+            if hasattr(service_db, "updated_at"):
+                service_db.updated_at = datetime.now(caracas_tz)
+            service_db.histories.append(history)
+            db.commit()  
+            db.refresh(service_db)  # Recargamos el objeto actualizado
         else:
             print(f"Advertencia: El servicio {service_name} no existe en la base de datos.")
 
-        # 5. Retornar la respuesta con el objeto de la DB
         return {
             "message": f"Servicio {action} ejecutado y actualizado en DB",
             "service": {
-                "id": db_service.id if db_service else None,
+                "id": service_db.id if service_db else None,
                 "name": service_name,
-                "is_active": is_active
+                "is_active": is_active,
+                "histories":service_db.histories
             }
         }
     else:
@@ -128,6 +134,7 @@ def deploy_service(db: Session, service_in: ServiceCreate, file) -> Service:
     service_in.name = service_name 
     
     service_db = Service(**service_in.model_dump())
+    service_db.histories.append(HistoryService(name="servicio creado", service=service_db))
     db.add(service_db)
     db.commit()
     db.refresh(service_db)
@@ -174,16 +181,16 @@ def remove_service(db: Session, service_in: Service):
                 
     db_deleted = False
     if getattr(service_in, "id", None) is not None:
-        db_service = db.get(Service, service_in.id)
-        if db_service:
-            db.delete(db_service)
+        service_db = db.get(Service, service_in.id)
+        if service_db:
+            db.delete(service_db)
             db.commit()
             db_deleted = True
     else:
 
-        db_service = db.query(Service).filter(Service.name == base_name).first()
-        if db_service:
-            db.delete(db_service)
+        service_db = db.query(Service).filter(Service.name == base_name).first()
+        if service_db:
+            db.delete(service_db)
             db.commit()
             db_deleted = True
 
@@ -220,5 +227,6 @@ def get_details(db: Session, service_id: int):
     
     return {
         "service": service.name,
-        "logs": result.stdout
+        "logs": result.stdout,
+        "history":[]
     }
