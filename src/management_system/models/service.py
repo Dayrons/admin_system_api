@@ -16,7 +16,6 @@ class Service(BaseModel):
 
     name = Column(String(255), nullable=False, unique=True)
     description = Column(Text)
-    status = Column(String(20), nullable=False)
     is_active = Column(Boolean, nullable=False,default=False)
     add_file = Column(Boolean, nullable=False,default=False)
     file_name = Column(String(255), nullable=True)

@@ -24,10 +24,10 @@ def get_all_services(db: Session, skip: int = 0, limit: int = 100) -> List[Servi
     
     for service in results:
         system_result = run_command(["sudo", "/usr/bin/systemctl", "is-active", service.name, "--no-pager"])
-        print(system_result)
-        print(f"system_result.stdout: {system_result.stdout}")
-        print(f"system_result.stderr: {system_result.stderr}")
-        print(f"system_result.returncode: {system_result.returncode}")
+        # print(system_result)
+        # print(f"system_result.stdout: {system_result.stdout}")
+        # print(f"system_result.stderr: {system_result.stderr}")
+        # print(f"system_result.returncode: {system_result.returncode}")
         service.is_active = True if system_result.stdout.strip() == "active" else False
         
         system_result = run_command([
@@ -37,8 +37,8 @@ def get_all_services(db: Session, skip: int = 0, limit: int = 100) -> List[Servi
             "--no-pager"             
         ])
 
-        print(f"journalctl stdout: {system_result.stdout}")
-        print(f"journalctl stderr: {system_result.stderr}")
+        # print(f"journalctl stdout: {system_result.stdout}")
+        # print(f"journalctl stderr: {system_result.stderr}")
     
     return results
 
@@ -127,7 +127,7 @@ def deploy_service(db: Session, service_in: ServiceCreate, file) -> Service:
             subprocess.run(["sudo", "mv", f"/tmp/{service_name}.service", service_file_path], check=True)
             subprocess.run(["sudo", "systemctl", "daemon-reload"], check=True)
             subprocess.run(["sudo", "systemctl", "enable", service_name], check=True)
-            subprocess.run(["sudo", "systemctl", "start" if service_in.replay else "stop", service_name], check=True)
+            subprocess.run(["sudo", "systemctl", "start" if service_in.is_active else "stop", service_name], check=True)
             
     # subprocess.run(["sudo", "systemctl", "status", service_name],check=True)
     
