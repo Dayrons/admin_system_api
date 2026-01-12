@@ -110,13 +110,16 @@ def deploy_service(db: Session, service_in: ServiceCreate, file) -> Service:
 
                 [Service]
                 Type=simple
-                WorkingDirectory={settings.XMLRPC_DESTINATION_DIR}
-                ExecStart={settings.PYTHON_ENV_DIR} {script_path}
-                StandardOutput=journal+console
-                User={service_in.user_exec}
-                Group={service_in.user_exec}
                 Restart=always
                 RestartSec=5
+                SyslogIdentifier={service_name}
+                User={service_in.user_exec}
+                Group={service_in.user_exec}
+                WorkingDirectory={settings.XMLRPC_DESTINATION_DIR}
+                Environment=PYTHONUNBUFFERED=1
+                ExecStart={settings.PYTHON_ENV_DIR} {script_path}
+                StandardOutput=journal+console
+                
                 [Install]
                 WantedBy=multi-user.target
             """
