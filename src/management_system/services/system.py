@@ -67,7 +67,8 @@ def management_service(data: dict, db: Session):
             service_db.is_active = is_active
             history = HistoryService(
                 name="iniciado" if is_active else "detenido",
-                service=service_db
+                service=service_db,
+                created_at=datetime.now(caracas_tz)
             )
             if hasattr(service_db, "updated_at"):
                 service_db.updated_at = datetime.now(caracas_tz)
