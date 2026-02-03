@@ -9,11 +9,11 @@ class Settings(BaseSettings):
     
     XMLRPC_DESTINATION_DIR:str = "/opt/xmlrpc"
     
-    SECRET_KEY:str = "mtMVzRrEGaCShaipSPVlkjv6LPDmxuzHDiegOMqZynX5GAg4JWcn7DeT87W5Git8"
+    SECRET_KEY:str = "ZhJYkG8XrFtltCwrj-2s8vwR0lrgmLVUeaN87MAJq26RX-kceE2hunO4yAfrCcMH"
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
     
-    PYTHON_ENV_DIR: str = "/opt/usrodoo/venv/bin/python3"
+    PYTHON_ENV_DIR: str = "/opt/odoo16com/odoo-venv/bin/python3"
 
     @property
     def DATABASE_URL(self) -> str:

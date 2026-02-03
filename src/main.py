@@ -38,6 +38,6 @@ if __name__ == "__main__":
     import uvicorn
     create_db_and_tables()
     create_dir()
-    uvicorn.run(app, host="0.0.0.0", port=5000)
+    uvicorn.run(app, host="0.0.0.0", port=5080)
 
 
